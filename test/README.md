@@ -40,11 +40,15 @@ The batch file will:
 
 ### Manual Execution (Advanced Users)
 ```bash
-# Install dependencies
-pip install -r requirements.txt
+# Install dependencies (use python, python3, or py depending on your system)
+python -m pip install -r requirements.txt
+# OR: python3 -m pip install -r requirements.txt
+# OR: py -m pip install -r requirements.txt
 
-# Run the extractor
+# Run the extractor (use python, python3, or py depending on your system)
 python main.py
+# OR: python3 main.py
+# OR: py main.py
 ```
 
 ## 📁 Output Files

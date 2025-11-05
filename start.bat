@@ -36,6 +36,15 @@ if %errorlevel% equ 0 (
     goto :install_deps
 )
 
+REM Try py (Windows Python Launcher)
+py --version >nul 2>&1
+if %errorlevel% equ 0 (
+    set PYTHON_CMD=py
+    py --version
+    echo Found Python Launcher - using py command
+    goto :install_deps
+)
+
 REM No Python found
 echo ERROR: No Python installation found!
 echo Please install Python 3.x from https://python.org
