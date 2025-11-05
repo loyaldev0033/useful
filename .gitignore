@@ -1,0 +1,99 @@
+# Credential Extractor & Remote Desktop Tools - .gitignore
+
+# Output files (contain sensitive credentials)
+output*.txt
+batch_output*.txt
+summary.txt
+config.txt
+remote_desktop_config.txt
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Windows files
+*.lnk
+*.tmp
+*.temp
+
+# Log files
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Security sensitive files
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+*.cer
+*.der
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Configuration files with sensitive data
+.env
+.env.local
+.env.production
+.env.development
+config.json
+settings.json
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Test files
+test_*.txt
+debug_*.txt

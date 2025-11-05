@@ -1,0 +1,28 @@
+BrowserDataExtractor v2.0
+=======================
+
+Simplified Version - Full Extraction Only
+=========================================
+
+This version has been streamlined for maximum ease of use:
+
+✅ One-click execution via run_extraction.bat
+✅ Automatic dependency installation
+✅ Full password and cookie extraction
+✅ Automatic output directory opening
+✅ No user interaction required
+
+What was removed:
+- Debug mode
+- Test mode
+- Interactive options
+- Manual choices
+
+What remains:
+- Full browser data extraction
+- Multi-format output (TXT, CSV, JSON)
+- Comprehensive logging
+- Professional interface
+- Error handling
+
+Usage: Simply run run_extraction.bat and wait for completion!

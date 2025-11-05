@@ -1,0 +1,43 @@
+# ULTIMATE Credential Extractor Dependencies
+# Install ALL these libraries for i MAXIMUM credential extraction capability
+
+# Core Windows API access
+pywin32>=227
+pywin32-ctypes>=0.2.0
+
+# Advanced cryptography libraries
+pycryptodome>=3.15.0
+cryptography>=3.4.8
+pycryptodomex>=3.15.0
+
+# System credential store access
+keyring>=23.0.0
+
+# System information and process access
+psutil>=5.8.0
+
+# Network operations
+requests>=2.25.0
+
+# XML processing
+lxml>=4.6.0
+
+# Additional security libraries
+pycrypto>=2.6.1
+
+# Registry access (Windows)
+winreg-utils>=0.1.0
+
+# Memory access (Windows)
+pymem>=1.8.0
+
+# Additional utilities
+colorama>=0.4.4
+tqdm>=4.64.0
+
+# Optional: For even more advanced features
+# impacket>=0.9.24  # Network protocol implementation
+# scapy>=2.4.5      # Packet manipulation
+# volatility3>=2.0.0  # Memory forensics
+# capstone>=4.0.2   # Disassembly framework
+# keystone-engine>=0.9.2  # Assembly framework
