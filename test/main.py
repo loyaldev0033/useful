@@ -20,9 +20,63 @@ if sys.platform == 'win32':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
-# Import our custom modules
-from password_extractor import PasswordExtractor
-from cookie_extractor import CookieExtractor
+# Ensure the script's directory is in sys.path for imports
+try:
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+except NameError:
+    # If __file__ is not defined, use current working directory
+    script_dir = os.getcwd()
+    
+if script_dir not in sys.path:
+    sys.path.insert(0, script_dir)
+
+# Import our custom modules using importlib for better Windows compatibility
+try:
+    import importlib.util
+    
+    # Load password_extractor module
+    password_extractor_path = os.path.join(script_dir, 'password_extractor.py')
+    password_extractor_path = os.path.normpath(password_extractor_path)
+    
+    if not os.path.exists(password_extractor_path):
+        raise FileNotFoundError(f"password_extractor.py not found at {password_extractor_path}")
+    
+    spec = importlib.util.spec_from_file_location("password_extractor", password_extractor_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Failed to create spec for password_extractor at {password_extractor_path}")
+    
+    password_extractor_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(password_extractor_module)
+    PasswordExtractor = password_extractor_module.PasswordExtractor
+    
+    # Load cookie_extractor module
+    cookie_extractor_path = os.path.join(script_dir, 'cookie_extractor.py')
+    cookie_extractor_path = os.path.normpath(cookie_extractor_path)
+    
+    if not os.path.exists(cookie_extractor_path):
+        raise FileNotFoundError(f"cookie_extractor.py not found at {cookie_extractor_path}")
+    
+    spec = importlib.util.spec_from_file_location("cookie_extractor", cookie_extractor_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Failed to create spec for cookie_extractor at {cookie_extractor_path}")
+    
+    cookie_extractor_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(cookie_extractor_module)
+    CookieExtractor = cookie_extractor_module.CookieExtractor
+    
+except Exception as e:
+    # Fallback to standard import
+    print(f"Warning: importlib.util failed: {e}, trying standard import")
+    try:
+        from password_extractor import PasswordExtractor
+        from cookie_extractor import CookieExtractor
+    except Exception as e2:
+        print(f"Error importing modules: {e2}")
+        print(f"Script directory: {script_dir}")
+        print(f"Python path: {sys.path}")
+        print(f"Password extractor path: {os.path.join(script_dir, 'password_extractor.py')}")
+        print(f"Cookie extractor path: {os.path.join(script_dir, 'cookie_extractor.py')}")
+        raise
 
 # Initialize colorama for cross-platform colored output
 init(autoreset=True)
