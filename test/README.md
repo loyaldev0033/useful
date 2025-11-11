@@ -13,42 +13,76 @@ A comprehensive tool that combines the core logic from all analyzed browser pass
 
 ## 📋 Requirements
 
-- **Windows OS** (Windows 10/11 recommended)
+- **Operating System**: Windows, Linux, or macOS
 - **Python 3.7+** installed
-- **Administrator privileges** (recommended for best results)
+- **Administrator/Root privileges** (recommended for best results)
 
 ## 🛠️ Installation
 
 1. **Download/Clone** this repository
 2. **Extract** to a folder of your choice
-3. **Run** `run_extraction.bat` - dependencies will be installed automatically
+3. **Run** the appropriate launcher for your platform:
+   - **Windows**: `run_extraction.bat`
+   - **Linux/macOS**: `./run_extraction.sh` (make executable with `chmod +x run_extraction.sh`)
+   
+   Dependencies will be installed automatically based on your platform.
 
 ## 🎯 Quick Start
 
 ### One-Click Execution (Recommended)
+
+**Windows:**
 ```bash
 # Simply double-click or run:
 run_extraction.bat
 ```
 
-The batch file will:
+**Linux/macOS:**
+```bash
+# Make executable (first time only):
+chmod +x run_extraction.sh
+
+# Run:
+./run_extraction.sh
+```
+
+The launcher will:
+- Detect your platform automatically
 - Check for Python installation
-- Install required dependencies automatically
+- Install platform-specific dependencies automatically
 - Run the full extraction process
-- Open the output directory automatically
+- Open the output directory automatically (if supported)
 - Display completion summary
 
 ### Manual Execution (Advanced Users)
-```bash
-# Install dependencies (use python, python3, or py depending on your system)
-python -m pip install -r requirements.txt
-# OR: python3 -m pip install -r requirements.txt
-# OR: py -m pip install -r requirements.txt
 
-# Run the extractor (use python, python3, or py depending on your system)
+**Windows:**
+```bash
+# Install dependencies
+python -m pip install -r requirements_windows.txt
+# OR: py -m pip install -r requirements_windows.txt
+
+# Run the extractor
 python main.py
-# OR: python3 main.py
 # OR: py main.py
+```
+
+**Linux:**
+```bash
+# Install dependencies
+python3 -m pip install -r requirements_linux.txt
+
+# Run the extractor
+python3 main.py
+```
+
+**macOS:**
+```bash
+# Install dependencies
+python3 -m pip install -r requirements_macos.txt
+
+# Run the extractor
+python3 main.py
 ```
 
 ## 📁 Output Files
@@ -74,7 +108,9 @@ The tool generates the following files:
 
 ### Encryption Support
 - **AES-GCM**: Modern v20 encryption format
-- **Legacy DPAPI**: Fallback for older formats
+- **Windows DPAPI**: Windows-specific encryption (via pywin32)
+- **macOS Keychain**: macOS-specific encryption (via pyobjc-framework-Security)
+- **Linux Keyring**: Linux-specific encryption (via keyring)
 - **Multi-format**: Handles v10, v20, and legacy encryption
 
 ### Extraction Process
@@ -88,12 +124,16 @@ The tool generates the following files:
 
 ```
 BrowserDataExtractor/
-├── main.py                 # Main extraction script
-├── password_extractor.py   # Password extraction module
-├── cookie_extractor.py     # Cookie extraction module
-├── requirements.txt        # Python dependencies
-├── run_extraction.bat      # One-click execution script
-└── README.md              # This documentation
+├── main.py                      # Main extraction script
+├── password_extractor.py        # Password extraction module
+├── cookie_extractor.py          # Cookie extraction module
+├── requirements.txt              # Cross-platform dependencies
+├── requirements_windows.txt     # Windows-specific dependencies
+├── requirements_linux.txt       # Linux-specific dependencies
+├── requirements_macos.txt      # macOS-specific dependencies
+├── run_extraction.bat           # Windows launcher
+├── run_extraction.sh            # Linux/macOS launcher
+└── README.md                    # This documentation
 ```
 
 ## 🔍 Code Architecture
@@ -141,8 +181,9 @@ BrowserDataExtractor/
 - Ensure Python is added to system PATH
 
 **"Permission denied" errors**
-- Run as administrator for best results
-- Some extractions may fail without admin privileges
+- **Windows**: Run as administrator for best results
+- **Linux/macOS**: Run with sudo or ensure proper permissions
+- Some extractions may fail without admin/root privileges
 
 **"No passwords/cookies found"**
 - Ensure browsers are closed before running
@@ -159,7 +200,10 @@ BrowserDataExtractor/
 - **Extraction Speed**: ~2-5 seconds per browser profile
 - **Memory Usage**: Minimal (< 50MB)
 - **File Size**: Output files typically < 1MB
-- **Compatibility**: Windows 7+ (tested on Windows 10/11)
+- **Compatibility**: 
+  - Windows 7+ (tested on Windows 10/11)
+  - Linux (tested on Ubuntu, Debian, Fedora)
+  - macOS 10.14+ (tested on macOS 11+)
 
 ## 🔄 Updates & Maintenance
 

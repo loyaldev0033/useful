@@ -1,5 +1,15 @@
+# Cross-platform requirements
+# For platform-specific requirements, see:
+# - requirements_windows.txt (Windows)
+# - requirements_linux.txt (Linux)
+# - requirements_macos.txt (macOS)
+
 pycryptodome==3.22.0
-pywin32==310
 requests==2.31.0
 colorama==0.4.6
 tqdm==4.66.1
+
+# Platform-specific dependencies (install manually if needed):
+# Windows: pywin32==310
+# Linux: keyring==24.3.0
+# macOS: pyobjc-framework-Security==10.2

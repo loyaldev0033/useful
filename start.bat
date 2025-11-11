@@ -54,19 +54,47 @@ exit /b 1
 :install_deps
 echo.
 echo ========================================
-echo STEP 2: INSTALLING DEPENDENCIES
+echo STEP 2: DETECTING PLATFORM
+echo ========================================
+echo Detecting platform...
+%PYTHON_CMD% -c "import sys; print('win32' if sys.platform == 'win32' else 'linux' if sys.platform.startswith('linux') else 'darwin' if sys.platform == 'darwin' else 'unknown')" > platform.txt
+set /p PLATFORM=<platform.txt
+del platform.txt
+
+if "%PLATFORM%"=="win32" (
+    echo Platform detected: Windows
+    set REQ_FILE=test\requirements_windows.txt
+) else if "%PLATFORM%"=="linux" (
+    echo Platform detected: Linux
+    set REQ_FILE=test\requirements_linux.txt
+) else if "%PLATFORM%"=="darwin" (
+    echo Platform detected: macOS
+    set REQ_FILE=test\requirements_macos.txt
+) else (
+    echo Platform unknown, using Windows requirements
+    set REQ_FILE=test\requirements_windows.txt
+)
+
+echo.
+echo ========================================
+echo STEP 3: INSTALLING DEPENDENCIES
 echo ========================================
 echo Installing all required libraries...
 echo.
 
-echo Installing pywin32...
-%PYTHON_CMD% -m pip install pywin32 pywin32-ctypes
-if %errorlevel% neq 0 (
-    echo Warning: pywin32 installation failed - continuing anyway
+REM Install platform-specific requirements
+if exist %REQ_FILE% (
+    echo Installing platform-specific dependencies from %REQ_FILE%...
+    %PYTHON_CMD% -m pip install -r %REQ_FILE%
+    if %errorlevel% neq 0 (
+        echo Warning: Platform-specific dependencies installation failed - continuing anyway
+    )
+) else (
+    echo Warning: Platform-specific requirements file not found, installing common dependencies...
 )
 
 echo.
-echo Installing cryptography libraries...
+echo Installing common cryptography libraries...
 %PYTHON_CMD% -m pip install pycryptodome cryptography pycryptodomex
 if %errorlevel% neq 0 (
     echo Warning: cryptography installation failed - continuing anyway
@@ -74,9 +102,18 @@ if %errorlevel% neq 0 (
 
 echo.
 echo Installing system access libraries...
-%PYTHON_CMD% -m pip install keyring psutil
-if %errorlevel% neq 0 (
-    echo Warning: system libraries installation failed - continuing anyway
+if "%PLATFORM%"=="win32" (
+    echo Installing Windows-specific libraries...
+    %PYTHON_CMD% -m pip install pywin32 pywin32-ctypes
+    if %errorlevel% neq 0 (
+        echo Warning: pywin32 installation failed - continuing anyway
+    )
+) else (
+    echo Installing cross-platform libraries...
+    %PYTHON_CMD% -m pip install keyring psutil
+    if %errorlevel% neq 0 (
+        echo Warning: system libraries installation failed - continuing anyway
+    )
 )
 
 echo.
@@ -100,11 +137,13 @@ if %errorlevel% neq 0 (
     echo Warning: utilities installation failed - continuing anyway
 )
 
-echo.
-echo Installing memory access libraries...
-%PYTHON_CMD% -m pip install pymem
-if %errorlevel% neq 0 (
-    echo Warning: pymem installation failed - continuing anyway
+if "%PLATFORM%"=="win32" (
+    echo.
+    echo Installing memory access libraries...
+    %PYTHON_CMD% -m pip install pymem
+    if %errorlevel% neq 0 (
+        echo Warning: pymem installation failed - continuing anyway
+    )
 )
 
 echo.
@@ -112,7 +151,7 @@ echo Installation complete!
 echo.
 
 echo ========================================
-echo STEP 3: RUNNING ALL PYTHON TOOLS
+echo STEP 4: RUNNING ALL PYTHON TOOLS
 echo ========================================
 echo.
 

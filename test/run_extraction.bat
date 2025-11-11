@@ -52,13 +52,38 @@ exit /b 1
 :check_deps
 echo Python found. Checking dependencies...
 
+REM Detect platform and use appropriate requirements file
+echo Detecting platform...
+%PYTHON_CMD% -c "import sys; print('win32' if sys.platform == 'win32' else 'linux' if sys.platform.startswith('linux') else 'darwin' if sys.platform == 'darwin' else 'unknown')" > platform.txt
+set /p PLATFORM=<platform.txt
+del platform.txt
+
+if "%PLATFORM%"=="win32" (
+    set REQ_FILE=requirements_windows.txt
+    echo Platform detected: Windows
+) else if "%PLATFORM%"=="linux" (
+    set REQ_FILE=requirements_linux.txt
+    echo Platform detected: Linux
+) else if "%PLATFORM%"=="darwin" (
+    set REQ_FILE=requirements_macos.txt
+    echo Platform detected: macOS
+) else (
+    set REQ_FILE=requirements_windows.txt
+    echo Platform unknown, using Windows requirements
+)
+
 REM Check if required packages are installed
-%PYTHON_CMD% -c "import Crypto, win32crypt, colorama, tqdm" >nul 2>&1
+if "%PLATFORM%"=="win32" (
+    %PYTHON_CMD% -c "import Crypto, win32crypt, colorama, tqdm" >nul 2>&1
+) else (
+    %PYTHON_CMD% -c "import Crypto, colorama, tqdm" >nul 2>&1
+)
+
 if errorlevel 1 (
     echo Installing required dependencies...
     echo This may take a few minutes...
     echo.
-    %PYTHON_CMD% -m pip install -r requirements.txt
+    %PYTHON_CMD% -m pip install -r %REQ_FILE%
     if errorlevel 1 (
         echo ERROR: Failed to install dependencies
         echo Please check your internet connection and try again
