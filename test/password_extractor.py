@@ -12,7 +12,14 @@ import sqlite3
 import shutil
 import subprocess
 from datetime import datetime, timedelta
-from Crypto.Cipher import AES
+try:
+    from Crypto.Cipher import AES
+    CRYPTO_AVAILABLE = True
+except ImportError:
+    CRYPTO_AVAILABLE = False
+    AES = None
+    import warnings
+    warnings.warn("pycryptodome not available. Password decryption will be limited.")
 from pathlib import Path
 import logging
 
@@ -233,6 +240,10 @@ class PasswordExtractor:
     def decrypt_password(self, encrypted_password, key):
         """Decrypt password using AES-GCM"""
         try:
+            if not CRYPTO_AVAILABLE or AES is None:
+                logging.warning("pycryptodome not available, cannot decrypt passwords")
+                return None
+                
             if not encrypted_password or len(encrypted_password) < 15:
                 return None
                 
@@ -258,6 +269,7 @@ class PasswordExtractor:
             return decrypted.decode('utf-8')
             
         except Exception as e:
+            logging.error(f"Error decrypting password: {e}")
             # Platform-specific fallback
             if self.platform == 'win32' and win32crypt:
                 try:

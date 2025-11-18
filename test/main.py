@@ -11,8 +11,33 @@ import subprocess
 import time
 from datetime import datetime
 from pathlib import Path
-from colorama import init, Fore, Style
-from tqdm import tqdm
+# Import with fallbacks for optional dependencies
+try:
+    from colorama import init, Fore, Style
+    COLORAMA_AVAILABLE = True
+except ImportError:
+    # Fallback if colorama is not available
+    COLORAMA_AVAILABLE = False
+    class Fore:
+        CYAN = ''
+        YELLOW = ''
+        GREEN = ''
+        RED = ''
+    class Style:
+        RESET_ALL = ''
+    def init(*args, **kwargs):
+        pass
+
+try:
+    from tqdm import tqdm
+    TQDM_AVAILABLE = True
+except ImportError:
+    TQDM_AVAILABLE = False
+    # Fallback tqdm that does nothing
+    def tqdm(iterable=None, *args, **kwargs):
+        if iterable is None:
+            return iter([])
+        return iterable
 
 # Fix encoding issues on Windows
 if sys.platform == 'win32':

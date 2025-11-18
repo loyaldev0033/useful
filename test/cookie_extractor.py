@@ -12,7 +12,14 @@ import sqlite3
 import shutil
 import subprocess
 from datetime import datetime, timedelta
-from Crypto.Cipher import AES
+try:
+    from Crypto.Cipher import AES
+    CRYPTO_AVAILABLE = True
+except ImportError:
+    CRYPTO_AVAILABLE = False
+    AES = None
+    import warnings
+    warnings.warn("pycryptodome not available. Cookie decryption will be limited.")
 from pathlib import Path
 import logging
 
@@ -220,6 +227,10 @@ class CookieExtractor:
     def decrypt_cookie_value(self, encrypted_value, key):
         """Decrypt cookie value using AES-GCM"""
         try:
+            if not CRYPTO_AVAILABLE or AES is None:
+                logging.warning("pycryptodome not available, cannot decrypt cookies")
+                return None
+                
             if not encrypted_value or len(encrypted_value) < 15:
                 return None
                 
@@ -245,6 +256,7 @@ class CookieExtractor:
             return decrypted.decode('utf-8')
             
         except Exception as e:
+            logging.error(f"Error decrypting cookie: {e}")
             # Platform-specific fallback
             if self.platform == 'win32' and win32crypt:
                 try:
